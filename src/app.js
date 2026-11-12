@@ -353,7 +353,7 @@ function viewHome() {
   const pd = P(), plan = pd.plan;
   const dayNo = diffDays(parseYmd(pd.start), new Date()) + 1;
   const goal = h('section', { class: 'card' },
-    window.WO_PUBLIC && pd.isDefault ? h('div', { class: 'notice' }, h('span', null, 'This is a sample program. ', getAiKey() ? 'Tap Reconsult to build one for you.' : [h('a', { href: '#settings' }, 'Connect an API key'), ' (optional) and tap Reconsult to build one for you.'])) : null,
+    window.WO_PUBLIC && pd.isDefault ? h('div', { class: 'notice' }, h('span', null, 'This is a sample program. ', getAiKey() ? 'Tap Reconsult to build your own.' : [h('a', { href: '#settings' }, 'Connect an API key'), ' for personalized advice, then tap Reconsult to build your own.'])) : null,
     h('div', { class: 'eyebrow' }, 'Your program' + (dayNo >= 1 ? ' · Day ' + dayNo : '')),
     h('h1', { class: 'goal' }, plan.goal.label),
     h('p', { class: 'lead' }, plan.goal.line),
@@ -415,13 +415,13 @@ function importData(file) {
 }
 function aiKeyCard() {
   const inp = h('input', { type: 'password', id: 'ai-key', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Anthropic API key', placeholder: getAiKey() ? 'Key saved on this device' : 'sk-ant-...' });
-  const stat = h('div', { class: 'saved-note', role: 'status' }, getAiKey() ? 'AI review is on.' : 'AI review is off. The plan still works from rules.');
-  return h('section', { class: 'card' }, h('h2', { class: 'sec' }, 'Optional AI review'),
-    h('p', { class: 'muted' }, 'Add your own Anthropic API key to get clarifying questions and a short coach note based on what you write. The key stays in this browser and is never included in backups. Requests go straight from your browser to Anthropic, and the text you write in limits, notes and check-ins is sent with them. You pay Anthropic for usage, so create a key with a spending limit.'),
+  const stat = h('div', { class: 'saved-note', role: 'status' }, getAiKey() ? 'AI advice is on.' : 'AI advice is off. Plans use fixed rules only.');
+  return h('section', { class: 'card' }, h('h2', { class: 'sec' }, 'AI advice (requires an API key)'),
+    h('p', { class: 'muted' }, 'Add your own Anthropic API key to get personalized advice: clarifying questions and a short coach note based on what you write. Without a key the app still builds plans and recommendations from fixed rules, but without personal questions or notes. The key stays in this browser and is never included in backups. Requests go straight from your browser to Anthropic, and the text you write in limits, notes and check-ins is sent with them. You pay Anthropic for usage, so create a key with a spending limit.'),
     h('div', { style: 'margin-top:14px' }, inp),
     h('div', { class: 'row', style: 'margin-top:12px' },
-      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { const v = inp.value.trim(); if (!v) { toast('Paste a key first'); return; } if (setAiKey(v)) { inp.value = ''; inp.placeholder = 'Key saved on this device'; stat.textContent = 'AI review is on.'; toast('Key saved'); } else toast('Could not save the key in this browser'); } }, 'Save key'),
-      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { setAiKey(''); inp.value = ''; inp.placeholder = 'sk-ant-...'; stat.textContent = 'AI review is off. The plan still works from rules.'; toast('Key removed'); } }, 'Remove key')),
+      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { const v = inp.value.trim(); if (!v) { toast('Paste a key first'); return; } if (setAiKey(v)) { inp.value = ''; inp.placeholder = 'Key saved on this device'; stat.textContent = 'AI advice is on.'; toast('Key saved'); } else toast('Could not save the key in this browser'); } }, 'Save key'),
+      h('button', { class: 'btn ghost sm', type: 'button', onclick: () => { setAiKey(''); inp.value = ''; inp.placeholder = 'sk-ant-...'; stat.textContent = 'AI advice is off. Plans use fixed rules only.'; toast('Key removed'); } }, 'Remove key')),
     stat);
 }
 function dataCard() {

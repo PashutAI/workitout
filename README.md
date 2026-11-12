@@ -18,16 +18,16 @@ Plans, menus and recommendations come from fixed, documented rules (`src/engine.
 inputs always give the same plan. This is general fitness information, not medical advice. Stop any
 movement that causes pain, and check with a doctor before starting if you have a health condition.
 
-## Optional: connect your own Claude API key
+## Personalized advice: connect your own Claude API key
 
-With a key, the app can ask a few clarifying questions about what you write (injuries, food
-restrictions) and add a short coach note to your touch-base results. Without a key everything
-else works the same.
+Personalized advice needs a key: the app asks clarifying questions about what you write (injuries,
+food restrictions) and adds a short coach note to your touch-base results. Without a key the app
+still builds plans, menus and recommendations from fixed rules, but without personal questions or notes.
 
 1. Create an account at [console.anthropic.com](https://console.anthropic.com) and add a small
    credit balance.
 2. Create an API key and set a monthly spending limit on it.
-3. Open WORKitOUT, scroll to **Optional AI review**, paste the key and tap **Save key**.
+3. Open WORKitOUT, tap the gear icon and find **AI advice**, paste the key and tap **Save key**.
 4. Use **Remove key** at any time.
 
 What to know before you do:
