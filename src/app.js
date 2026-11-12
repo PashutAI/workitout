@@ -205,7 +205,13 @@ function loadLog(key, uptoDs) {
   return out.sort((a, b) => a.date < b.date ? -1 : 1);
 }
 function prevLoad(key, ds) { const l = loadLog(key).filter(x => x.date < ds); return l.length ? l[l.length - 1] : null; }
-const hasLoadField = ex => ex.weight !== 'Bodyweight' && ex.key.indexOf('ss_') !== 0;
+/* Weighted parts of an exercise: one field for a normal lift, one per weighted move in a superset. */
+function loadParts(ex) {
+  const def = WO.EX[ex.key] && WO.EX[ex.key].parts;
+  if (def) return def.map(p => ({ key: ex.key + '.' + p.k, label: p.label }));
+  return ex.weight !== 'Bodyweight' ? [{ key: ex.key, label: null }] : [];
+}
+const hasLoadField = ex => loadParts(ex).length > 0;
 function latestMeasure(id) {
   const keys = Object.keys(S.docs).filter(k => k.startsWith('t_')).sort().reverse();
   for (const k of keys) { const t = S.docs[k]; if (t.values && typeof t.values[id] === 'number') return t.values[id]; }
@@ -592,10 +598,12 @@ function touchSummary(ds) {
   const lifts = [];
   const seen = {};
   Object.keys(pd.plan.workouts).forEach(wk => (pd.plan.workouts[wk].exercises || []).forEach(e => {
-    if (seen[e.key] || !hasLoadField(e)) return;
+    if (seen[e.key]) return;
     seen[e.key] = 1;
-    const l = loadLog(e.key, ds).filter(x => x.date >= pd.start);
-    if (l.length) lifts.push({ key: e.key, name: e.name, first: l[0], last: l[l.length - 1], n: l.length, delta: l[l.length - 1].v - l[0].v });
+    loadParts(e).forEach(pt => {
+      const l = loadLog(pt.key, ds).filter(x => x.date >= pd.start);
+      if (l.length) lifts.push({ key: pt.key, name: pt.label || e.name, first: l[0], last: l[l.length - 1], n: l.length, delta: l[l.length - 1].v - l[0].v });
+    });
   }));
   return { planned, done, notes, trackNotes, meas, meals, joints, lifts, trackCount: tr.length,
     waistDelta: meas.waist ? meas.waist.delta : null, weightDelta: meas.weight ? meas.weight.delta : null, period: per };
@@ -811,13 +819,13 @@ function exRow(ex, doc, editable, onChange, ds) {
     tick = addTimer(setInterval(upd, 250));
     undo.style.display = '';
   }
-  let ldIn = null;
-  const pv = hasLoadField(ex) ? prevLoad(ex.key, doc.date) : null;
-  const ldVal = () => { const n = parseFloat(ldIn && ldIn.value); return !isNaN(n) && n > 0 && n <= 1000 ? n : null; };
+  const parts = loadParts(ex);
+  const ldIns = [];
+  const numOf = el => { const n = parseFloat(el.value); return !isNaN(n) && n > 0 && n <= 1000 ? n : null; };
   box.addEventListener('click', () => {
     if (!editable) { toast('This day is view only'); return; }
     if (sets() >= ex.sets || box.classList.contains('counting')) return;
-    if (ldIn && doc.loads[ex.key] === undefined && ldVal() != null) doc.loads[ex.key] = ldVal();
+    ldIns.forEach(x => { if (doc.loads[x.key] === undefined && numOf(x.el) != null) doc.loads[x.key] = numOf(x.el); });
     doc.sets[id] = sets() + 1; doc.last[id] = Date.now();
     counter.textContent = sets() + '/' + ex.sets;
     onChange();
@@ -832,18 +840,21 @@ function exRow(ex, doc, editable, onChange, ds) {
   const resume = doc.last[id] ? (doc.last[id] + ex.rest * 1000) - Date.now() : 0;
   if (editable && sets() < ex.sets && resume > 500) countdown(ex.rest * 1000, resume);
   const meta = [h('span', null, h('b', null, ex.sets + ' × ' + ex.reps)), h('span', null, ex.weight), h('span', null, 'Rest ' + (ex.rest >= 120 ? Math.round(ex.rest / 60 * 10) / 10 + ' min' : ex.rest + ' s'))];
-  let ldField = null;
-  if (hasLoadField(ex)) {
-    const cur = typeof doc.loads[ex.key] === 'number' ? doc.loads[ex.key] : (pv ? pv.v : '');
-    ldIn = h('input', { type: 'number', inputmode: 'decimal', step: '0.5', min: '0', max: '1000', id: 'ld-' + ex.key, 'aria-label': ex.name + ' top weight in lb', value: cur, disabled: !editable,
-      oninput: e => { const n = parseFloat(e.target.value); if (isNaN(n) || n <= 0 || n > 1000) delete doc.loads[ex.key]; else doc.loads[ex.key] = n; onChange(); },
-      onblur: () => { if (typeof doc.loads[ex.key] === 'number') ldIn.value = doc.loads[ex.key]; else if (ldIn.value !== '') ldIn.value = ''; } });
-    ldField = h('div', { class: 'ld' }, h('label', { for: 'ld-' + ex.key }, 'Top weight used'), ldIn, h('span', null, 'lb'),
+  const ldFields = parts.map(pt => {
+    const pv = prevLoad(pt.key, doc.date);
+    const cur = typeof doc.loads[pt.key] === 'number' ? doc.loads[pt.key] : (pv ? pv.v : '');
+    const fid = 'ld-' + pt.key.replace('.', '-');
+    const el = h('input', { type: 'number', inputmode: 'decimal', step: '0.5', min: '0', max: '1000', id: fid, 'aria-label': (pt.label || ex.name) + ' top weight in lb', value: cur, disabled: !editable,
+      oninput: e => { const n = parseFloat(e.target.value); if (isNaN(n) || n <= 0 || n > 1000) delete doc.loads[pt.key]; else doc.loads[pt.key] = n; onChange(); },
+      onblur: () => { if (typeof doc.loads[pt.key] === 'number') el.value = doc.loads[pt.key]; else if (el.value !== '') el.value = ''; } });
+    ldIns.push({ key: pt.key, el });
+    return h('div', { class: 'ld' }, h('label', { for: fid }, pt.label ? pt.label + ' weight' : 'Top weight used'), el, h('span', null, 'lb'),
       pv ? h('span', { class: 'last' }, 'Last: ' + pv.v + ' lb on ' + fmtShort(pv.date)) : null);
-  }
+  });
+  const note = ex.note || (WO.EX[ex.key] && WO.EX[ex.key].note) || '';
   row.append(
     h('div', { class: 'ex-side' }, box, counter, undo),
-    h('div', { class: 'ex-main' }, h('h3', null, ex.name), h('div', { class: 'ex-meta' }, meta), ldField, ex.note ? h('div', { class: 'ex-note' }, ex.note) : null));
+    h('div', { class: 'ex-main' }, h('h3', null, ex.name), h('div', { class: 'ex-meta' }, meta), ldFields, note ? h('div', { class: 'ex-note' }, note) : null));
   return row;
 }
 function fuelCard(ds, doc, editable) {
@@ -978,7 +989,11 @@ function loadsFromPlan(plan) {
   Object.values(plan.workouts).forEach(w => (w.exercises || []).forEach(e => {
     if (!e.weight) return;
     m[e.key] = e.weight;
-    if (hasLoadField(e)) { const l = loadLog(e.key); if (l.length) m[e.key] = withNumber(e.weight, l[l.length - 1].v); }
+    const parts = loadParts(e);
+    if (parts.length && parts[0].label) {
+      const bits = parts.map(pt => { const l = loadLog(pt.key); return l.length ? pt.label + ' ' + l[l.length - 1].v + ' lb' : null; }).filter(Boolean);
+      if (bits.length) m[e.key] = bits.join(', ');
+    } else if (parts.length) { const l = loadLog(e.key); if (l.length) m[e.key] = withNumber(e.weight, l[l.length - 1].v); }
   }));
   return m;
 }

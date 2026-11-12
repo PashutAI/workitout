@@ -58,10 +58,10 @@ const EX = {
   hkr: { name: 'Hanging knee raise', sets: 3, reps: '12', rest: 60, note: 'Too easy? Straighten the legs or hold a 5 lb weight between the feet.' },
   deadbug: { name: 'Dead bug', sets: 3, reps: '10 per side', rest: 60 },
   plank: { name: 'Plank', sets: 3, reps: '60 s hold', rest: 60 },
-  ss_chest: { name: 'Chest superset: pec deck or chest press, then push-ups', sets: 3, reps: '10 + max reps', rest: 120 },
-  ss_chest_alt: { name: 'Chest superset: chest press machine, then incline push-ups', sets: 3, reps: '10 + max reps', rest: 120 },
-  ss_arms: { name: 'Arms superset: EZ-bar curl, then triceps pushdown', sets: 3, reps: '10 + 10', rest: 120 },
-  ss_arms_alt: { name: 'Arms superset: cable rope curl, then rope pushdown', sets: 3, reps: '10 + 10', rest: 120 },
+  ss_chest: { name: 'Chest superset: pec deck or chest press, then push-ups', sets: 3, reps: '10 + max reps', rest: 120, note: 'Do both moves back to back, then rest. Push-ups are bodyweight.', parts: [{ k: 'a', label: 'Pec deck or chest press' }] },
+  ss_chest_alt: { name: 'Chest superset: chest press machine, then incline push-ups', sets: 3, reps: '10 + max reps', rest: 120, note: 'Do both moves back to back, then rest. Push-ups are bodyweight.', parts: [{ k: 'a', label: 'Chest press machine' }] },
+  ss_arms: { name: 'Arms superset: EZ-bar curl, then triceps pushdown', sets: 3, reps: '10 + 10', rest: 120, note: 'Do both moves back to back, then rest.', parts: [{ k: 'a', label: 'EZ-bar curl' }, { k: 'b', label: 'Triceps pushdown' }] },
+  ss_arms_alt: { name: 'Arms superset: cable rope curl, then rope pushdown', sets: 3, reps: '10 + 10', rest: 120, note: 'Do both moves back to back, then rest.', parts: [{ k: 'a', label: 'Cable rope curl' }, { k: 'b', label: 'Rope pushdown' }] }
 };
 /* Starting loads. Personal values can be injected through root.WO_PERSONAL (see build.js); the shipped defaults carry none. */
 const PERSONAL = (root && typeof root.WO_PERSONAL === 'object' && root.WO_PERSONAL) || {};
