@@ -270,3 +270,23 @@ details.dd ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-s
 .ld .last { font-size: 12px; color: var(--muted); font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .foot-in.small { font-size: 12px; opacity: .75; margin-top: 8px; max-width: 640px; margin-left: auto; margin-right: auto; }
+.banner-in { max-width: 880px; margin: 0 auto; padding: 18px 16px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative; z-index: 1; }
+.banner-right { display: flex; align-items: center; gap: 8px; }
+.gear { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.gear:hover { border-color: var(--ink); }
+.gear:focus-visible { outline: 3px solid rgba(255, 90, 31, .45); outline-offset: 2px; }
+.notice a { color: inherit; font-weight: 800; text-decoration: underline; }
+.sync { white-space: nowrap; }
+.card > .notice:first-child { margin: 0 0 16px; }
+@media (max-width: 480px) {
+  .logo { font-size: 32px; }
+  .banner-in { gap: 8px; padding-left: 14px; padding-right: 12px; }
+  .banner-right { gap: 6px; }
+  .sync { padding: 6px 8px; font-size: 11px; }
+  .gear { width: 36px; height: 36px; }
+}
+@media (max-width: 400px) {
+  .logo { font-size: 28px; }
+  .sync span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sync { padding: 9px; }
+}

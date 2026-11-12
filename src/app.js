@@ -94,7 +94,7 @@ const lsKey = () => 'workitout.v1.' + (S.uid || 'anon');
 function lsRead(key) { try { return JSON.parse(localStorage.getItem(key || lsKey()) || 'null'); } catch (e) { return null; } }
 function lsWrite() { try { localStorage.setItem(lsKey(), JSON.stringify(S.docs)); } catch (e) { /* storage unavailable */ } }
 function setSync(state) {
-  const labels = { ok: 'Saved', saving: 'Saving', local: 'Saved on this device', error: 'Save pending' };
+  const labels = { ok: 'Saved', saving: 'Saving', local: 'On this device', error: 'Save pending' };
   syncEl.className = 'sync ' + state;
   syncEl.querySelector('span').textContent = labels[state] || '';
 }
@@ -217,6 +217,7 @@ let cur = 'home';
 function parseHash() {
   const t = (location.hash || '').replace('#', '');
   if (t === 'consult') return 'consult';
+  if (t === 'settings') return 'settings';
   if (/^day-\d{4}-\d{2}-\d{2}$/.test(t)) return t;
   return 'home';
 }
@@ -352,7 +353,7 @@ function viewHome() {
   const pd = P(), plan = pd.plan;
   const dayNo = diffDays(parseYmd(pd.start), new Date()) + 1;
   const goal = h('section', { class: 'card' },
-    window.WO_PUBLIC && pd.isDefault ? h('div', { class: 'notice' }, h('span', null, 'This is a sample program. Tap Reconsult to build one for you.')) : null,
+    window.WO_PUBLIC && pd.isDefault ? h('div', { class: 'notice' }, h('span', null, 'This is a sample program. ', getAiKey() ? 'Tap Reconsult to build one for you.' : [h('a', { href: '#settings' }, 'Connect an API key'), ' (optional) and tap Reconsult to build one for you.'])) : null,
     h('div', { class: 'eyebrow' }, 'Your program' + (dayNo >= 1 ? ' · Day ' + dayNo : '')),
     h('h1', { class: 'goal' }, plan.goal.label),
     h('p', { class: 'lead' }, plan.goal.line),
@@ -371,7 +372,7 @@ function viewHome() {
     h('div', { class: 'sec-head' }, h('h2', { class: 'sec' }, 'Latest touch base'), h('span', { class: 'muted small' }, fmtShort(lt.date))),
     h('ul', { class: 'recs' }, (lt.recs || []).slice(0, 4).map(r => h('li', null, r))),
     lt.coach ? h('div', { class: 'note-coach' }, lt.coach) : null) : null;
-  return h('div', { class: 'wrap-inner', style: 'display:flex;flex-direction:column;gap:22px' }, goal, week, cal, touch, window.WO_PUBLIC ? aiKeyCard() : null, dataCard());
+  return h('div', { class: 'wrap-inner', style: 'display:flex;flex-direction:column;gap:22px' }, goal, week, cal, touch);
 }
 const DOC_ID = /^(plan|d_\d{4}-\d{2}-\d{2}|t_\d{4}-\d{2}-\d{2}|tb_\d{4}-\d{2}-\d{2})$/;
 function exportData() {
@@ -395,6 +396,7 @@ function importData(file) {
     if (!docs || !docs.plan || !docs.plan.plan || !docs.plan.plan.schedule) { toast('That is not a WORKitOUT backup'); return; }
     const clean = {};
     Object.keys(docs).forEach(k => { if (DOC_ID.test(k) && docs[k] && typeof docs[k] === 'object') clean[k] = docs[k]; });
+    clean.plan = Object.assign({}, clean.plan, { isDefault: false });
     const days = Object.keys(clean).filter(k => k.slice(0, 2) === 'd_').length;
     openModal([
       h('h2', null, 'Restore this backup?'),
@@ -429,6 +431,14 @@ function dataCard() {
     h('div', { class: 'row', style: 'margin-top:14px' },
       h('button', { class: 'btn ghost sm', type: 'button', onclick: exportData }, 'Download backup'),
       h('button', { class: 'btn ghost sm', type: 'button', onclick: () => input.click() }, 'Restore from backup'), input));
+}
+function viewSettings() {
+  return h('div', { style: 'display:flex;flex-direction:column;gap:22px' },
+    h('div', { class: 'topbar' }, backBtn()),
+    h('section', { class: 'card' }, h('div', { class: 'eyebrow' }, 'WORKitOUT'), h('h1', { class: 'page' }, 'Settings')),
+    window.WO_PUBLIC ? aiKeyCard() : null,
+    dataCard(),
+    h('div', { class: 'topbar' }, backBtn()));
 }
 function weekCard() {
   const plan = P().plan, ws = startOfWeek(new Date()), tds = todayStr();
@@ -1046,6 +1056,7 @@ function render() {
   if (!S.ready) { root.append(h('p', { class: 'muted', role: 'status' }, 'Loading your program…')); return; }
   let v;
   if (cur === 'consult') v = viewConsult();
+  else if (cur === 'settings') v = viewSettings();
   else if (cur.slice(0, 4) === 'day-') v = viewDay(cur.slice(4));
   else v = viewHome();
   root.append(v);
