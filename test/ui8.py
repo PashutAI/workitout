@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 errs=[]
 def consult(pg, slot, kcal='150', prot='34', scoops='1'):
     pg.get_by_role('button', name='Reconsult').first.click(); pg.wait_for_timeout(300)
-    pg.select_option('#f-pw', slot)
+    pg.select_option('#f-pw', slot); pg.select_option('#f-pwl','water')
     pg.fill('#f-pwk', kcal); pg.fill('#f-pwp', prot); pg.select_option('#f-pws', scoops)
     pg.locator('button.accent', has_text='Consult').click(); pg.wait_for_timeout(2200)
 with sync_playwright() as p:
