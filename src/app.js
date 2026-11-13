@@ -923,6 +923,7 @@ function field(id, label, control, hint, full) {
 }
 function viewForm() {
   const v = C.values;
+  const pw = Object.assign({ slot: 'none', scoops: 1, kcal: '', protein: '' }, v.powder || {});
   const num = (id, val, min, max, step) => h('input', { type: 'number', id, inputmode: 'decimal', min, max, step: step || '1', value: val == null ? '' : val });
   const sel = (id, opts, val) => h('select', { id }, opts.map(o => h('option', { value: o[0], selected: String(o[0]) === String(val) }, o[1])));
   const err = h('div', { class: 'err', role: 'alert' }, C.error || '');
@@ -932,6 +933,7 @@ function viewForm() {
     experience: $('#f-exp').value, strengthDays: parseInt($('#f-days').value, 10), swimDays: parseInt($('#f-swim').value, 10),
     goal: $('#f-goal').value, bodyFat: $('#f-bf').value === '' ? null : parseFloat($('#f-bf').value),
     limits: $('#f-limits').value, notes: $('#f-notes').value,
+    powder: { slot: $('#f-pw').value, scoops: parseInt($('#f-pws').value, 10), kcal: $('#f-pwk').value === '' ? '' : parseFloat($('#f-pwk').value), protein: $('#f-pwp').value === '' ? '' : parseFloat($('#f-pwp').value) },
   });
   btn.addEventListener('click', async () => {
     const val = read();
@@ -942,6 +944,7 @@ function viewForm() {
     else if (!(val.weight >= 35 && val.weight <= 250)) msg = 'Enter a weight between 35 and 250 kg.';
     else if (!(val.height >= 120 && val.height <= 230)) msg = 'Enter a height between 120 and 230 cm.';
     else if (val.bodyFat != null && !(val.bodyFat >= 4 && val.bodyFat <= 50)) msg = 'Body fat should be between 4 and 50 percent, or left empty.';
+    if (!msg && val.powder.slot !== 'none' && !(val.powder.kcal > 0 && val.powder.kcal <= 400 && val.powder.protein > 0 && val.powder.protein <= 80)) msg = 'For the protein powder, enter kcal (up to 400) and protein grams (up to 80) for one scoop, as printed on the label.';
     if (!msg && (val.limits.length > NOTE_MAX || val.notes.length > NOTE_MAX)) msg = 'Shorten Limits and Anything else to ' + NOTE_MAX + ' characters each. Nothing was cut.';
     err.textContent = msg;
     if (msg) return;
@@ -960,6 +963,11 @@ function viewForm() {
     field('f-days', 'Strength days', sel('f-days', [[3, '3 days'], [4, '4 days'], [5, '5 days']], v.strengthDays)),
     field('f-swim', 'Swim sessions', sel('f-swim', [[0, 'None'], [1, '1 per week'], [2, '2 per week']], v.swimDays)),
     field('f-goal', 'Main goal', sel('f-goal', Object.keys(WO.GOALS).map(k => [k, WO.GOALS[k].label]), v.goal), null, true),
+    h('div', { class: 'group-title' }, 'Protein powder (optional)'),
+    field('f-pw', 'Where it goes in the menu', sel('f-pw', [['none', 'Not using powder'], ['snack', 'Afternoon snack'], ['breakfast', 'Post-workout breakfast']], pw.slot), 'It also becomes your fallback when you cannot face a meal.', true),
+    field('f-pws', 'Scoops a day', sel('f-pws', [[1, '1'], [2, '2'], [3, '3']], pw.scoops)),
+    field('f-pwk', 'kcal per scoop', num('f-pwk', pw.kcal, 1, 400, '1'), 'From the Nutrition Facts label.'),
+    field('f-pwp', 'Protein g per scoop', num('f-pwp', pw.protein, 1, 80, '0.5'), 'From the Nutrition Facts label.'),
     h('div', { class: 'group-title' }, 'Limits and notes'),
     field('f-limits', 'Limits', noteField({ id: 'f-limits', label: 'Limits', placeholder: 'Injuries, pain, movements to avoid', value: v.limits || '' }), 'Body areas that hurt or feel tight.', true),
     field('f-notes', 'Anything else', noteField({ id: 'f-notes', label: 'Anything else', placeholder: 'Food preferences or restrictions, schedule, equipment, what you want to change', value: v.notes || '' }), null, true));

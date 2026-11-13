@@ -288,6 +288,7 @@ function fmtQty(id, q) {
     case 'tsp': return frac(q) + ' tsp ' + f.n;
     case 'pc': return q + ' ' + (q === 1 ? f.n : (f.np || f.n));
     case 'half': return frac(q / 2) + ' ' + f.n;
+    case 'scoop': return q + (q === 1 ? ' scoop ' : ' scoops ') + f.n;
     default: return f.n;
   }
 }
@@ -329,7 +330,24 @@ function pick(list, i, mult, off) {
   return list[(i * m + off) % n];
 }
 
-function buildMenu(dow, kind, target, excl, floor) {
+/* Optional protein powder: the user supplies the label values for one scoop. */
+const POWDER_SLOTS = { snack: 'afternoon snack', breakfast: 'post-workout breakfast' };
+function powderOf(p) {
+  const w = p && p.powder;
+  if (!w || !POWDER_SLOTS[w.slot]) return null;
+  const kcal = Number(w.kcal), protein = Number(w.protein);
+  if (!(kcal > 0 && kcal <= 400 && protein > 0 && protein <= 80)) return null;
+  return { slot: w.slot, scoops: clamp(Math.round(Number(w.scoops)) || 1, 1, 3), kcal, protein };
+}
+function shakeDef(pw, excl) {
+  const liquid = excl.has('dairy') ? null : ['milk', 1];
+  if (pw.slot === 'breakfast') {
+    const carb = excl.has('gluten') ? ['dates', 2] : ['oats', 0.5];
+    return ['W2', liquid ? 'Protein shake with oats, milk and banana' : 'Protein shake with oats and banana (made with water)', [['whey', pw.scoops]].concat(liquid ? [liquid] : [], [carb, ['banana', 1]])];
+  }
+  return ['W1', liquid ? 'Protein shake: powder, milk and banana' : 'Protein shake: powder, water, banana and berries', [['whey', pw.scoops], ['banana', 1]].concat(liquid ? [liquid] : [['berries', 1]])];
+}
+function buildMenu(dow, kind, target, excl, floor, pw) {
   const unmet = [];
   const allowed = (slot, list) => {
     const ok = list.filter(m => ![...mealTags(m)].some(t => excl.has(t)));
@@ -346,6 +364,7 @@ function buildMenu(dow, kind, target, excl, floor) {
   slots.push(['snack', pick(allowed('snack', MEALS.snack), dow, 1, 1)]);
   slots.push(['dinner', pick(allowed('dinner', MEALS.dinner), dow, 3, 2)]);
   if (kcalTarget >= 2500) slots.push(['evening', pick(allowed('evening', MEALS.evening), dow, 1, 2)]);
+  if (pw) { const at = slots.findIndex(x => x[0] === pw.slot); if (at >= 0) slots[at] = [pw.slot, shakeDef(pw, excl)]; }
   const labels = {
     pre: kind === 'rest' ? 'Early morning' : kind === 'swim' ? 'Pre-swim' : 'Pre-workout',
     breakfast: kind === 'rest' ? 'Breakfast' : 'Post-workout breakfast', lunch: 'Lunch', snack: 'Afternoon snack', dinner: 'Dinner', evening: 'Before bed',
@@ -521,7 +540,9 @@ function generatePlan(profile, ctx) {
   const sessions = nStr + nSwim;
   const tg = targets(p, goal.type, sessions, ctx.aiCalAdj);
   const floorK = p.sex === 'male' ? 1800 : 1500;
-  const menus = schedule.map(s => buildMenu(s.dow, s.kind, tg.kcal, excl, floorK));
+  const pw = powderOf(p);
+  if (pw) FOODS.whey = { n: 'protein powder', unit: 'scoop', k: pw.kcal, p: pw.protein, step: 1 };
+  const menus = schedule.map(s => buildMenu(s.dow, s.kind, tg.kcal, excl, floorK, pw));
   const unmetSlots = Array.from(new Set([].concat.apply([], menus.map(m => m.unmet))));
   const avgK = Math.round(menus.reduce((a, m) => a + m.kcal, 0) / 7 / 50) * 50;
   const avgP = Math.round(menus.reduce((a, m) => a + m.protein, 0) / 7);
@@ -532,6 +553,10 @@ function generatePlan(profile, ctx) {
   const gi = [];
   gi.push('Stop each set 1 to 2 reps short of failure. Raise the load once you hit the top of the rep range on every set.');
   gi.push('Eat about ' + avgK.toLocaleString('en-US') + ' kcal and ' + avgP + ' g protein on average. The menu changes with the day: more on swim days, less on rest days.');
+  if (pw) {
+    const fb = totals(shakeDef({ slot: 'snack', scoops: 1 }, excl)[2].map(it => ({ f: it[0], q: it[1] })));
+    gi.push('Protein powder: ' + pw.scoops + (pw.scoops === 1 ? ' scoop' : ' scoops') + ' (' + Math.round(pw.kcal * pw.scoops) + ' kcal, ' + Math.round(pw.protein * pw.scoops) + ' g protein) is built into the ' + POWDER_SLOTS[pw.slot] + ' every day, rest days included. If you cannot face a meal, a shake with one scoop is your fallback (about ' + fb.kcal + ' kcal and ' + fb.protein + ' g protein). Keep it to one swap a day so most of your food stays real food.');
+  }
   if (goal.type === 'gain') gi.push('Track waist weekly. If it climbs faster than your lifts, trim about 200 kcal a day.');
   else if (goal.type === 'loss') gi.push('Aim to lose 0.25 to 0.5 kg a week. Keep protein and lifting loads up.');
   else gi.push('Track waist and weight weekly and adjust portions if both drift the wrong way.');
@@ -567,7 +592,7 @@ function generatePlan(profile, ctx) {
 /* ---------- default profile ---------- */
 const DEFAULT_PROFILE = Object.assign({
   age: 30, sex: 'male', weight: 75, height: 175, experience: 'mid', strengthDays: 4, swimDays: 0,
-  goal: 'full', bodyFat: null, limits: '', notes: '',
+  goal: 'full', bodyFat: null, limits: '', notes: '', powder: { slot: 'none', scoops: 1, kcal: '', protein: '' },
 }, PERSONAL.profile || {});
 
 /* ---------- questions ---------- */

@@ -1,7 +1,7 @@
 # WORKitOUT
 
 A personal training and nutrition planner that runs entirely in the browser: weekly schedule,
-workout logging with rest timers, daily menus with editable calories and protein, weekly tracking
+workout logging with rest timers, daily menus with editable calories and protein (optionally with your own protein powder built in), weekly tracking
 and touch-base check-ins that adjust the recommendations.
 
 Built by [Oren Lulu](https://www.linkedin.com/in/oren2020).
